@@ -29,6 +29,8 @@ Apache Spark.
   List and filter Serverless Spark sessions.
 - [`serverless-spark-get-session`](../tools/serverless-spark/serverless-spark-get-session.md)
   Get a Serverless Spark session.
+- [`serverless-spark-get-session-template`](../tools/serverless-spark/serverless-spark-get-session-template.md)
+  Get a Serverless Spark session template.
 
 ## Requirements
 
@@ -53,7 +55,7 @@ set up your ADC.
 ## Example
 
 ```yaml
-kind: sources
+kind: source
 name: my-serverless-spark-source
 type: serverless-spark
 project: my-project-id
