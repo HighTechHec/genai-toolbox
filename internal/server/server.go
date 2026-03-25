@@ -331,158 +331,158 @@ func hostCheck(allowedHosts map[string]struct{}) func(http.Handler) http.Handler
 
 // NewServer returns a Server object based on provided Config.
 func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
-  instrumentation, err := util.InstrumentationFromContext(ctx)
-  if err != nil {
-    return nil, err
-  }
+	instrumentation, err := util.InstrumentationFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-  ctx, span := instrumentation.Tracer.Start(ctx, "toolbox/server/init")
-  defer span.End()
+	ctx, span := instrumentation.Tracer.Start(ctx, "toolbox/server/init")
+	defer span.End()
 
-  l, err := util.LoggerFromContext(ctx)
-  if err != nil {
-    return nil, err
-  }
+	l, err := util.LoggerFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-  // set up http serving
-  r := chi.NewRouter()
-  r.Use(middleware.Recoverer)
+	// set up http serving
+	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
 
-  // logging
-  logLevel, err := log.SeverityToLevel(cfg.LogLevel.String())
-  if err != nil {
-    return nil, fmt.Errorf("unable to initialize http log: %w", err)
-  }
+	// logging
+	logLevel, err := log.SeverityToLevel(cfg.LogLevel.String())
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize http log: %w", err)
+	}
 
-  schema := *httplog.SchemaGCP
-  schema.Level = cfg.LogLevel.String()
-  schema.Concise(true)
-  httpOpts := &httplog.Options{
-    Level:  logLevel,
-    Schema: &schema,
-  }
-  logger := l.SlogLogger()
-  r.Use(httplog.RequestLogger(logger, httpOpts))
+	schema := *httplog.SchemaGCP
+	schema.Level = cfg.LogLevel.String()
+	schema.Concise(true)
+	httpOpts := &httplog.Options{
+		Level:  logLevel,
+		Schema: &schema,
+	}
+	logger := l.SlogLogger()
+	r.Use(httplog.RequestLogger(logger, httpOpts))
 
-  sourcesMap, authServicesMap, embeddingModelsMap, toolsMap, toolsetsMap, promptsMap, promptsetsMap, err := InitializeConfigs(ctx, cfg)
-  if err != nil {
-    return nil, fmt.Errorf("unable to initialize configs: %w", err)
-  }
+	sourcesMap, authServicesMap, embeddingModelsMap, toolsMap, toolsetsMap, promptsMap, promptsetsMap, err := InitializeConfigs(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize configs: %w", err)
+	}
 
-  addr := net.JoinHostPort(cfg.Address, strconv.Itoa(cfg.Port))
-  srv := &http.Server{Addr: addr, Handler: r}
+	addr := net.JoinHostPort(cfg.Address, strconv.Itoa(cfg.Port))
+	srv := &http.Server{Addr: addr, Handler: r}
 
-  sseManager := newSseManager(ctx)
+	sseManager := newSseManager(ctx)
 
-  resourceManager := resources.NewResourceManager(sourcesMap, authServicesMap, embeddingModelsMap, toolsMap, toolsetsMap, promptsMap, promptsetsMap)
+	resourceManager := resources.NewResourceManager(sourcesMap, authServicesMap, embeddingModelsMap, toolsMap, toolsetsMap, promptsMap, promptsetsMap)
 
-  s := &Server{
-    version:         cfg.Version,
-    srv:             srv,
-    root:            r,
-    logger:          l,
-    instrumentation: instrumentation,
-    sseManager:      sseManager,
-    ResourceMgr:     resourceManager,
-    toolboxUrl:      cfg.ToolboxUrl,
-    mcpPrmFile:      cfg.McpPrmFile,
-  }
+	s := &Server{
+		version:         cfg.Version,
+		srv:             srv,
+		root:            r,
+		logger:          l,
+		instrumentation: instrumentation,
+		sseManager:      sseManager,
+		ResourceMgr:     resourceManager,
+		toolboxUrl:      cfg.ToolboxUrl,
+		mcpPrmFile:      cfg.McpPrmFile,
+	}
 
-  // cors
-  if slices.Contains(cfg.AllowedOrigins, "*") {
-    s.logger.WarnContext(ctx, "wildcard (`*`) allows all origin to access the resource and is not secure. Use it with cautious for public, non-sensitive data, or during local development. Recommended to use `--allowed-origins` flag")
-  }
-  corsOpts := cors.Options{
-    AllowedOrigins:   cfg.AllowedOrigins,
-    AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
-    AllowCredentials: true, // required since Toolbox uses auth headers
-    AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Mcp-Session-Id", "MCP-Protocol-Version"},
-    ExposedHeaders:   []string{"Mcp-Session-Id"}, // headers that are sent to clients
-    MaxAge:           300,                        // cache preflight results for 5 minutes
-  }
-  r.Use(cors.Handler(corsOpts))
-  // validate hosts for DNS rebinding attacks
-  if slices.Contains(cfg.AllowedHosts, "*") {
-    s.logger.WarnContext(ctx, "wildcard (`*`) allows all hosts to access the resource and is not secure. Use it with cautious for public, non-sensitive data, or during local development. Recommended to use `--allowed-hosts` flag to prevent DNS rebinding attacks")
-  }
-  allowedHostsMap := make(map[string]struct{}, len(cfg.AllowedHosts))
-  for _, h := range cfg.AllowedHosts {
-    hostname := h
-    if host, _, err := net.SplitHostPort(h); err == nil {
-      hostname = host
-    }
-    allowedHostsMap[hostname] = struct{}{}
-  }
-  r.Use(hostCheck(allowedHostsMap))
+	// cors
+	if slices.Contains(cfg.AllowedOrigins, "*") {
+		s.logger.WarnContext(ctx, "wildcard (`*`) allows all origin to access the resource and is not secure. Use it with cautious for public, non-sensitive data, or during local development. Recommended to use `--allowed-origins` flag")
+	}
+	corsOpts := cors.Options{
+		AllowedOrigins:   cfg.AllowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowCredentials: true, // required since Toolbox uses auth headers
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Mcp-Session-Id", "MCP-Protocol-Version"},
+		ExposedHeaders:   []string{"Mcp-Session-Id"}, // headers that are sent to clients
+		MaxAge:           300,                        // cache preflight results for 5 minutes
+	}
+	r.Use(cors.Handler(corsOpts))
+	// validate hosts for DNS rebinding attacks
+	if slices.Contains(cfg.AllowedHosts, "*") {
+		s.logger.WarnContext(ctx, "wildcard (`*`) allows all hosts to access the resource and is not secure. Use it with cautious for public, non-sensitive data, or during local development. Recommended to use `--allowed-hosts` flag to prevent DNS rebinding attacks")
+	}
+	allowedHostsMap := make(map[string]struct{}, len(cfg.AllowedHosts))
+	for _, h := range cfg.AllowedHosts {
+		hostname := h
+		if host, _, err := net.SplitHostPort(h); err == nil {
+			hostname = host
+		}
+		allowedHostsMap[hostname] = struct{}{}
+	}
+	r.Use(hostCheck(allowedHostsMap))
 
-  // Host OAuth Protected Resource Metadata endpoint
-  mcpAuthEnabled := false
-  for _, authSvc := range s.ResourceMgr.GetAuthServiceMap() {
-    if genCfg, ok := authSvc.ToConfig().(generic.Config); ok && genCfg.McpEnabled {
-      mcpAuthEnabled = true
-      break
-    }
-  }
+	// Host OAuth Protected Resource Metadata endpoint
+	mcpAuthEnabled := false
+	for _, authSvc := range s.ResourceMgr.GetAuthServiceMap() {
+		if genCfg, ok := authSvc.ToConfig().(generic.Config); ok && genCfg.McpEnabled {
+			mcpAuthEnabled = true
+			break
+		}
+	}
 
 	// Manual PRM override
 	var cachedPrmBytes []byte
 	var prmConfig ProtectedResourceMetadata
-  if s.mcpPrmFile != "" {
-    var err error
-    cachedPrmBytes, err = os.ReadFile(s.mcpPrmFile)
-    if err != nil {
-      return nil, fmt.Errorf("failed to read manual PRM file at startup: %w", err)
-    }
-    // Unmarshal into the struct to strictly validate the schema
-    if err := json.Unmarshal(cachedPrmBytes, &prmConfig); err != nil {
-      return nil, fmt.Errorf("manual PRM file does not match expected schema: %w", err)
-    }
-  }
+	if s.mcpPrmFile != "" {
+		var err error
+		cachedPrmBytes, err = os.ReadFile(s.mcpPrmFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read manual PRM file at startup: %w", err)
+		}
+		// Unmarshal into the struct to strictly validate the schema
+		if err := json.Unmarshal(cachedPrmBytes, &prmConfig); err != nil {
+			return nil, fmt.Errorf("manual PRM file does not match expected schema: %w", err)
+		}
+	}
 
 	// Register route if auth is enabled or a manual file is provided
-  if mcpAuthEnabled || s.mcpPrmFile != "" {
-    r.Get("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, req *http.Request) {
-      // Serve from memory if file was loaded
-      if s.mcpPrmFile != "" {
-        w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(http.StatusOK)
-        if _, err := w.Write(cachedPrmBytes); err != nil {
-          s.logger.ErrorContext(req.Context(), "failed to write manual PRM file response", "error", err)
-        }
-        return
-      }
+	if mcpAuthEnabled || s.mcpPrmFile != "" {
+		r.Get("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, req *http.Request) {
+			// Serve from memory if file was loaded
+			if s.mcpPrmFile != "" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				if _, err := w.Write(cachedPrmBytes); err != nil {
+					s.logger.ErrorContext(req.Context(), "failed to write manual PRM file response", "error", err)
+				}
+				return
+			}
 
-      prmHandler(s, w, req)
-    })
-  }
+			prmHandler(s, w, req)
+		})
+	}
 
-  // control plane
-  mcpR, err := mcpRouter(s)
-  if err != nil {
-    return nil, err
-  }
+	// control plane
+	mcpR, err := mcpRouter(s)
+	if err != nil {
+		return nil, err
+	}
 
-  r.Mount("/mcp", mcpR)
-  if cfg.EnableAPI {
-    apiR, err := apiRouter(s)
-    if err != nil {
-      return nil, err
-    }
-    r.Mount("/api", apiR)
-  }
-  if cfg.UI {
-    webR, err := webRouter()
-    if err != nil {
-      return nil, err
-    }
-    r.Mount("/ui", webR)
-  }
-  // default endpoint for validating server is running
-  r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-    _, _ = w.Write([]byte("🧰 Hello, World! 🧰"))
-  })
+	r.Mount("/mcp", mcpR)
+	if cfg.EnableAPI {
+		apiR, err := apiRouter(s)
+		if err != nil {
+			return nil, err
+		}
+		r.Mount("/api", apiR)
+	}
+	if cfg.UI {
+		webR, err := webRouter()
+		if err != nil {
+			return nil, err
+		}
+		r.Mount("/ui", webR)
+	}
+	// default endpoint for validating server is running
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("🧰 Hello, World! 🧰"))
+	})
 
-  return s, nil
+	return s, nil
 }
 
 func mcpAuthMiddleware(s *Server) func(http.Handler) http.Handler {
