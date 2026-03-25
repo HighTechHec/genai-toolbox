@@ -48,6 +48,7 @@ This README provides a brief overview. For comprehensive details, see the [full 
 - [Generate Agent Skills](#generate-agent-skills)
 - [Versioning](#versioning)
 - [Contributing](#contributing)
+- [Telemetry](#telemetry)
 - [Community](#community)
 
 ---
@@ -192,7 +193,7 @@ For more details on configuring prompts, see the
 You can run Toolbox directly with a [configuration file](#configuration):
 
 ```sh
-npx @toolbox-sdk/server --tools-file tools.yaml
+npx @toolbox-sdk/server --config tools.yaml
 ```
 
 This runs the latest version of the Toolbox server with your configuration file.
@@ -327,7 +328,7 @@ execute `toolbox` to start the server:
 To run Toolbox from binary:
 
 ```sh
-./toolbox --tools-file "tools.yaml"
+./toolbox --config "tools.yaml"
 ```
 
 > ⓘ Note  
@@ -347,7 +348,7 @@ export VERSION=0.24.0 # Use the version you pulled
 docker run -p 5000:5000 \
 -v $(pwd)/tools.yaml:/app/tools.yaml \
 us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:$VERSION \
---tools-file "/app/tools.yaml"
+--config "/app/tools.yaml"
 ```
 
 > ⓘ Note  
@@ -384,7 +385,7 @@ binary is available in your system path. You can start the server with the same
 command:
 
 ```sh
-toolbox --tools-file "tools.yaml"
+toolbox --config "tools.yaml"
 ```
 
 </details>
@@ -394,7 +395,7 @@ toolbox --tools-file "tools.yaml"
 
 To run Toolbox directly without manually downloading the binary (requires Node.js):
 ```sh
-npx @toolbox-sdk/server --tools-file tools.yaml
+npx @toolbox-sdk/server --config tools.yaml
 ```
 
 </details>
@@ -1014,6 +1015,12 @@ Contributions are welcome. Please, see the [CONTRIBUTING](CONTRIBUTING.md) guide
 Please note that this project is released with a Contributor Code of Conduct. By participating in this project you agree to abide by its terms. See [Contributor Code of Conduct](CODE_OF_CONDUCT.md) for more information.
 
 ---
+
+## Telemetry
+
+Toolbox emits traces and metrics via OpenTelemetry. Use `--telemetry-otlp=<endpoint>` 
+to export to any OTLP-compatible backend like Google Cloud Monitoring, Agnost AI, or 
+others. See the [telemetry docs](https://googleapis.github.io/genai-toolbox/how-to/export_telemetry/) for details.
 
 ## Community
 
