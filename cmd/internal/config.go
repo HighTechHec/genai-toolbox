@@ -319,7 +319,7 @@ func mergeConfigs(files ...Config) (Config, error) {
 		}
 	}
 	if len(mcpEnabledAuthServers) > 1 {
-		return ToolsFile{}, fmt.Errorf("multiple authServices with mcpEnabled=true detected: %s. Only one MCP authorization server is currently supported", strings.Join(mcpEnabledAuthServers, ", "))
+		return Config{}, fmt.Errorf("multiple authServices with mcpEnabled=true detected: %s. Only one MCP authorization server is currently supported", strings.Join(mcpEnabledAuthServers, ", "))
 	}
 
 	return merged, nil

@@ -112,8 +112,8 @@ func TestConvertConfig(t *testing.T) {
 		errStr string
 	}{
 		{
-			desc: "basic convert",
-			in: `
+      desc: "basic convert",
+      in: `
             sources:
                 my-pg-instance:
                     kind: cloud-sql-postgres
@@ -617,48 +617,48 @@ func TestParseConfig(t *testing.T) {
 			type: google
 			clientId: testing-id
 ---
-			kind: authServices
-			name: my-generic-auth
-			type: generic
-			audience: testings
-			authorizationServer: https://testings
-			mcpEnabled: true
-			scopesRequired:
-			  - read:files
-			  - write:files
+      kind: authService
+      name: my-generic-auth
+      type: generic
+      audience: testings
+      authorizationServer: https://testings
+      mcpEnabled: true
+      scopesRequired:
+        - read:files
+        - write:files
 ---
-			kind: embeddingModels
-			name: gemini-model
-			type: gemini
-			model: gemini-embedding-001
-			apiKey: some-key
-			dimension: 768
+      kind: embeddingModel
+      name: gemini-model
+      type: gemini
+      model: gemini-embedding-001
+      apiKey: some-key
+      dimension: 768
 ---
-			kind: tool
-			name: example_tool
-			type: postgres-sql
-			source: my-pg-instance
-			description: some description
-			statement: |
-				SELECT * FROM SQL_STATEMENT;
-			parameters:
-			- name: country
-			  type: string
-			  description: some description
+      kind: tool
+      name: example_tool
+      type: postgres-sql
+      source: my-pg-instance
+      description: some description
+      statement: |
+        SELECT * FROM SQL_STATEMENT;
+      parameters:
+      - name: country
+        type: string
+        description: some description
 ---
-			kind: toolset
-			name: example_toolset
-			tools:
-			- example_tool
+      kind: toolset
+      name: example_toolset
+      tools:
+      - example_tool
 ---
-			kind: prompt
-			name: code_review
-			description: ask llm to analyze code quality
-			messages:
-			- content: "please review the following code for quality: {{.code}}"
-			arguments:
-			- name: code
-			  description: the code to review
+      kind: prompt
+      name: code_review
+      description: ask llm to analyze code quality
+      messages:
+      - content: "please review the following code for quality: {{.code}}"
+      arguments:
+      - name: code
+        description: the code to review
 			`,
 			wantConfig: Config{
 				Sources: server.SourceConfigs{
@@ -681,12 +681,12 @@ func TestParseConfig(t *testing.T) {
 						ClientID: "testing-id",
 					},
 					"my-generic-auth": generic.Config{
-						Name:                   "my-generic-auth",
-						Type:                   generic.AuthServiceType,
-						Audience:               "testings",
-						McpEnabled:             true,
+						Name:                "my-generic-auth",
+						Type:                generic.AuthServiceType,
+						Audience:            "testings",
+						McpEnabled:          true,
 						AuthorizationServer: "https://testings",
-						ScopesRequired:         []string{"read:files", "write:files"},
+						ScopesRequired:      []string{"read:files", "write:files"},
 					},
 				},
 				EmbeddingModels: server.EmbeddingModelConfigs{
@@ -2048,10 +2048,10 @@ func TestMergeConfigs(t *testing.T) {
 		Sources: server.SourceConfigs{"source1": httpsrc.Config{Name: "source1"}},
 		Tools:   server.ToolConfigs{"tool2": http.Config{Name: "tool2"}},
 	}
-	fileMcp1 := ToolsFile{
+	fileMcp1 := Config{
 		AuthServices: server.AuthServiceConfigs{"generic1": generic.Config{Name: "generic1", McpEnabled: true}},
 	}
-	fileMcp2 := ToolsFile{
+	fileMcp2 := Config{
 		AuthServices: server.AuthServiceConfigs{"generic2": generic.Config{Name: "generic2", McpEnabled: true}},
 	}
 
@@ -2082,7 +2082,7 @@ func TestMergeConfigs(t *testing.T) {
 		},
 		{
 			name:      "merge multiple mcp enabled generic",
-			files:     []ToolsFile{fileMcp1, fileMcp2},
+			files:     []Config{fileMcp1, fileMcp2},
 			wantErr:   true,
 			errString: "multiple authServices with mcpEnabled=true detected",
 		},

@@ -29,8 +29,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-
-
 func generateRSAPrivateKey(t *testing.T) *rsa.PrivateKey {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -94,12 +92,12 @@ func TestGetClaimsFromHeader(t *testing.T) {
 	defer server.Close()
 
 	cfg := Config{
-		Name:                   "test-generic-auth",
-		Type:                   "generic",
-		Audience:               "my-audience",
-		McpEnabled:             false,
+		Name:                "test-generic-auth",
+		Type:                "generic",
+		Audience:            "my-audience",
+		McpEnabled:          false,
 		AuthorizationServer: server.URL,
-		ScopesRequired:         []string{"read:files"},
+		ScopesRequired:      []string{"read:files"},
 	}
 
 	authService, err := cfg.Initialize()
