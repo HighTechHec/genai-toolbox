@@ -77,7 +77,76 @@
   {{ end }}
 {{ end }}
 
-<!-- 3. Render the Buttons -->
+{{/* 3. If the calculated Prev/Next is a structural folder under intehrations/, skip it */}}
+
+{{/* REWIND FILTER (For Previous) */}}
+{{ range seq 5 }}
+  {{ if $prev }}
+    {{ $isLockedPrev := false }}
+    {{ if and $prev.IsNode (in $prev.RelPermalink "/integrations/") }}
+      {{ if or (strings.HasSuffix $prev.RelPermalink "/tools/") (strings.HasSuffix $prev.RelPermalink "/samples/") (and $prev.Parent (strings.HasSuffix $prev.Parent.RelPermalink "/integrations/")) }}
+        {{ $isLockedPrev = true }}
+      {{ end }}
+    {{ end }}
+
+    {{ if $isLockedPrev }}
+      {{/* Rewind logic depending on which locked folder we hit */}}
+      {{ if $prev.Parent }}
+        {{ if eq $prev.Parent.RelPermalink "/integrations/" }}
+          {{/* If we hit the DB root (alloydb/), jump up to /integrations/ */}}
+          {{ $prev = $prev.Parent }}
+        {{ else }}
+          {{/* If we hit tools/ or samples/, jump back to the preceding sibling (source.md) */}}
+          {{ $sibs := $prev.Parent.Pages.ByWeight }}
+          {{ $idx := -1 }}
+          {{ range $i, $p := $sibs }}{{ if eq $p.RelPermalink $prev.RelPermalink }}{{ $idx = $i }}{{ end }}{{ end }}
+          {{ if gt $idx 0 }}
+            {{ $prev = index $sibs (sub $idx 1) }}
+          {{ else }}
+            {{ $prev = $prev.Parent }}
+          {{ end }}
+        {{ end }}
+      {{ else }}
+        {{ $prev = "" }}
+      {{ end }}
+    {{ else }}
+      {{ break }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{/* FAST-FORWARD FILTER (For Next) */}}
+{{ range seq 5 }}
+  {{ if $next }}
+    {{ $isLockedNext := false }}
+    {{ if and $next.IsNode (in $next.RelPermalink "/integrations/") }}
+      {{ if or (strings.HasSuffix $next.RelPermalink "/tools/") (strings.HasSuffix $next.RelPermalink "/samples/") (and $next.Parent (strings.HasSuffix $next.Parent.RelPermalink "/integrations/")) }}
+        {{ $isLockedNext = true }}
+      {{ end }}
+    {{ end }}
+
+    {{ if $isLockedNext }}
+      {{/* Fast-forward logic: Dive directly into the locked folder's first file */}}
+      {{ if gt (len $next.Pages) 0 }}
+        {{ $next = index $next.Pages.ByWeight 0 }}
+      {{ else }}
+        {{/* If the tools/ or samples/ folder is completely empty, skip to the next folder over */}}
+        {{ $sibs := $next.Parent.Pages.ByWeight }}
+        {{ $idx := -1 }}
+        {{ range $i, $p := $sibs }}{{ if eq $p.RelPermalink $next.RelPermalink }}{{ $idx = $i }}{{ end }}{{ end }}
+        {{ if lt $idx (sub (len $sibs) 1) }}
+          {{ $next = index $sibs (add $idx 1) }}
+        {{ else }}
+          {{ $next = $next.Parent }}
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      {{ break }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+<!-- 4. RENDER THE BUTTONS -->
 {{ if or $prev $next }}
 <nav class="mt-5 pt-4 border-top d-flex justify-content-between" aria-label="Page navigation">
 
